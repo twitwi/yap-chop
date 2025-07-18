@@ -1,9 +1,19 @@
 <script setup lang="ts">
 import { useLocalStore, useMainStore } from '@/stores/simple'
-import type { Data, Item, State } from '@/typing'
-import { computed } from 'vue'
+import type { Item, State } from '@/typing'
+import { computed, ref } from 'vue'
 const local = useLocalStore()
 const main = useMainStore()
+
+type Mode = 'main' | 'edit'
+const mode = ref('main' as Mode)
+function cycleMode() {
+  if (mode.value === 'main') {
+    mode.value = 'edit'
+  } else {
+    mode.value = 'main'
+  }
+}
 
 const current = computed(() => (main.data?.lists?.[local.currentList] ?? []).map((it, i) => ({...it, ind: i})))
 const currentUnchecked = computed(() => sorted(current.value.filter(it => it.state == 'unchecked')))
@@ -45,23 +55,54 @@ function promptAddItem() {
   }
 }
 
+function promptDescription(ind: number) {
+    const l = main.data?.lists?.[local.currentList]
+    if (l !== undefined) {
+      const description = prompt("New description", l[ind].description)
+      if (description !== null) {
+        l[ind].description = description
+      }
+    }
+
+}
+
 function setState(ind: number, state: State) {
     const l = main.data?.lists?.[local.currentList]
     if (l !== undefined) {
       l[ind].state = state
     }
 }
+
+function deleteItem(ind: number) {
+    const l = main.data?.lists?.[local.currentList]
+    if (l !== undefined) {
+      l.splice(ind, 1)
+    }
+}
 </script>
 
 <template>
-  <h3><button @click="promptSwitchList()">{{ local.currentList }}</button> <button title="Add List" @click="promptAddList()">(+)</button></h3>
-  <ul>
+  <h3><button @click="promptSwitchList()">{{ local.currentList }}</button> <button title="Add List" @click="promptAddList()">(+)</button><button @click="cycleMode()">mode is {{ mode }}</button></h3>
+  <ul v-if="mode === 'edit'" class="mode-edit">
     <li @click="promptAddItem()">(+)</li>
-    <li class="unchecked" v-for="it in currentUnchecked" :key="it.ind" @click="setState(it.ind, 'checked')">{{  it.description }}</li>
+    <li v-for="it in [...currentUnchecked, ...currentChecked, ...currentArchived]" :key="it.ind">
+      <span
+        v-for="k in (['unchecked', 'checked', 'archived'] as State[])" :key="k"
+        :class="{ [k]: true, currentState: it.state === k }"
+        @click="setState(it.ind, k)"
+      ></span>
+      <strong @click="promptDescription(it.ind)">{{ it.description }}</strong>
+        
+      <button @click="deleteItem(it.ind)">del.</button>
+    </li>
+  </ul>
+  <ul v-else class="mode-main">
+    <li @click="promptAddItem()">(+)</li>
+    <li class="unchecked" v-for="it in currentUnchecked" :key="it.ind" @click="setState(it.ind, 'checked')">{{ it.description }}</li>
     <li class="sep"><hr/></li>
-    <li class="checked" v-for="it in currentChecked" :key="it.ind" @click="setState(it.ind, 'unchecked')">{{  it.description }}</li>
+    <li class="checked" v-for="it in currentChecked" :key="it.ind" @click="setState(it.ind, 'unchecked')">{{ it.description }}</li>
     <li class="sep"><hr/></li>
-    <li class="archived" v-for="it in currentArchived" :key="it.ind">{{  it.description }}</li>
+    <li class="archived" v-for="it in currentArchived" :key="it.ind">{{ it.description }}</li>
   </ul>
   <!--pre>{{ JSON.stringify(current, null, 2) }}</pre-->
 </template>
@@ -81,5 +122,20 @@ li.checked::before {
 }
 li.archived::before {
   content: "... ";
+}
+
+.mode-edit {
+  span.unchecked::before {
+    content: " [_] "
+  }
+  span.checked::before {
+    content: " [x] "
+  }
+  span.archived::before {
+    content: " (A) "
+  }
+  li>span:not(.currentState) {
+    opacity: 0.25;
+  }
 }
 </style>
