@@ -82,7 +82,9 @@ function deleteItem(ind: number) {
 </script>
 
 <template>
-  <h3><button @click="promptSwitchList()">{{ local.currentList }}</button> <button title="Add List" @click="promptAddList()">(+)</button><button @click="cycleMode()">mode is {{ mode }}</button></h3>
+  <div class="menu-bar">
+    <button @click="promptSwitchList()">{{ local.currentList }}</button> <button title="Add List" @click="promptAddList()">(+)</button><button @click="cycleMode()">mode is {{ mode }}</button>
+  </div>
   <ul v-if="mode === 'edit'" class="mode-edit">
     <li @click="promptAddItem()">(+)</li>
     <li v-for="it in [...currentUnchecked, ...currentChecked, ...currentArchived]" :key="it.ind">
@@ -137,5 +139,29 @@ li.archived::before {
   li>span:not(.currentState) {
     opacity: 0.25;
   }
+}
+
+
+.menu-bar {
+  display: flex;
+  width: 100%;
+  background-color: #333;
+  padding: 10px;
+  align-items: center;
+  box-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+}
+
+.menu-bar button {
+  flex: 1;
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.menu-bar button:hover {
+  background-color: #444;
 }
 </style>
