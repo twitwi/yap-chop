@@ -6,8 +6,8 @@ export const useLocalStore = defineStore(
   'local',
   () => {
     // like setup() in a component
-    const userName = ref('bob')
-    return { userName }
+    const currentList = ref('shop')
+    return { currentList }
   },
   {
     persist: true, // persisted in localStorage
