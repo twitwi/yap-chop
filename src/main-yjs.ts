@@ -4,7 +4,11 @@ import { createPiniaYJSPlugin } from 'pinia-plugin-yjs'
 import { IndexeddbPersistence } from 'y-indexeddb'
 import type { Pinia } from 'pinia'
 
-export function getOrAskConfig(LOCAL_STORAGE_KEY = 'yjsapp-schopper', saveToLocalStorage = true) {
+export const SEP = '::'
+export const EG_CONFIG = `todo.com${SEP}doc${SEP}token`
+
+export const APP_LOCAL_STORAGE_KEY = 'yjsapp-schopper'
+export function getOrAskConfig(LOCAL_STORAGE_KEY = APP_LOCAL_STORAGE_KEY, saveToLocalStorage = true) {
   const ASK = Symbol('ask')
 
   let config: symbol | (string | symbol)[] = ASK
@@ -21,16 +25,16 @@ export function getOrAskConfig(LOCAL_STORAGE_KEY = 'yjsapp-schopper', saveToLoca
     }
     const local = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (local) {
-      config = local.split(':')
+      config = local.split(SEP)
     }
   }
 
   if (config == ASK) {
-    const v = prompt('Enter the doc description e.g.: todo.com:doc:token')
+    const v = prompt(`Enter the doc description e.g.: ${EG_CONFIG}`)
     if (!v) {
       throw new Error('No config provided')
     }
-    config = v.split(':')
+    config = v.split(SEP)
     if (config.length < 3) {
       throw new Error('Invalid config provided')
     }
@@ -60,7 +64,7 @@ export function getOrAskConfig(LOCAL_STORAGE_KEY = 'yjsapp-schopper', saveToLoca
     config[2] = token
   }
   if (saveToLocalStorage) {
-    localStorage.setItem(LOCAL_STORAGE_KEY, config.join(':'))
+    localStorage.setItem(LOCAL_STORAGE_KEY, config.join(SEP))
   }
   return config as [string, string, string]
 }
@@ -70,7 +74,7 @@ export function setupYjs(piniaUse: Pinia, { websocket = true, indexeddb = true, 
   const [server, docname, token] = getOrAskConfig()
   const idbkey = `yjs-${docname}` // idb key, can be different
   if (websocket) {
-    new WebsocketProvider(`wss://${server}`, `${docname}?t=${token}`, ydoc)
+    new WebsocketProvider(server.includes('://') ? server : `wss://${server}`, `${docname}?t=${token}`, ydoc)
   }
   if (indexeddb) {
     new IndexeddbPersistence(idbkey, ydoc)
