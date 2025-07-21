@@ -83,7 +83,12 @@ function deleteItem(ind: number) {
 
 <template>
   <div class="menu-bar">
-    <button @click="promptSwitchList()">list is {{ local.currentList }}</button> <button title="Add List" @click="promptAddList()">(+) new list</button><button @click="cycleMode()">mode is {{ mode }}</button>
+    <button @click="promptSwitchList()">
+      list is {{ local.currentList }}
+      <span title="Add List" @click.stop="promptAddList()">(+)</span>
+    </button>
+    <button @click="promptAddItem()">(+) new item</button>
+    <button @click="cycleMode()">mode is {{ mode }}</button>
   </div>
   <ul v-if="mode === 'edit'" class="mode-edit">
     <li @click="promptAddItem()">(+)</li>
