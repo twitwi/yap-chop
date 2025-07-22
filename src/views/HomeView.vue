@@ -84,11 +84,16 @@ function deleteItem(ind: number) {
 <template>
   <div class="menu-bar">
     <button @click="promptSwitchList()">
-      list is {{ local.currentList }}
-      <span title="Add List" @click.stop="promptAddList()">(+)</span>
+      list is <code>{{ local.currentList }}</code>
+      <span title="Add List" @click.stop="promptAddList()">(+) </span>
+      <details style="display: inline-block;" @click.stop><summary></summary>
+        <select v-if="mode === 'edit'" type="select" @click.stop v-model="local.currentList">
+          <option v-for="l in Object.keys(main.data.lists)" :key="l" :value="l">{{ l }}</option>
+        </select>
+      </details>
     </button>
     <button @click="promptAddItem()">(+) new item</button>
-    <button @click="cycleMode()">mode is {{ mode }}</button>
+    <button @click="cycleMode()">mode is <code>{{ mode }}</code></button>
   </div>
   <ul v-if="mode === 'edit'" class="mode-edit">
     <li @click="promptAddItem()">(+)</li>
@@ -164,6 +169,10 @@ li.archived::before {
   padding: 10px;
   font-size: 16px;
   cursor: pointer;
+
+  code {
+    padding: 0 1em;
+  }
 }
 
 .menu-bar button:hover {
