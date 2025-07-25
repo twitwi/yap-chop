@@ -23,9 +23,9 @@ export default defineConfig({
         config: true,
       },
       manifest: {
-        name: 'Schopper',
-        short_name: 'Schopper',
-        description: 'This is a shopping list app',
+        name: 'yap-Chop',
+        short_name: 'yap-chop',
+        description: 'yap-Chop is a shopping list app which is yjs-backed, collaborative, offline-first.',
         theme_color: '#00ff00',
       },
     }),

@@ -10,7 +10,7 @@ export const useLocalStore = defineStore(
     return { currentList }
   },
   {
-    persist: true, // persisted in localStorage
+    persist: { key: 'yap-chop:local' }, // persisted in localStorage
   },
 )
 

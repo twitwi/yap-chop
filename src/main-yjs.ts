@@ -7,7 +7,7 @@ import type { Pinia } from 'pinia'
 export const SEP = '::'
 export const EG_CONFIG = `todo.com${SEP}doc${SEP}token`
 
-export const APP_LOCAL_STORAGE_KEY = 'yjsapp-schopper'
+export const APP_LOCAL_STORAGE_KEY = 'yap-chop:server'
 export function getOrAskConfig(LOCAL_STORAGE_KEY = APP_LOCAL_STORAGE_KEY, saveToLocalStorage = true) {
   const ASK = Symbol('ask')
 
