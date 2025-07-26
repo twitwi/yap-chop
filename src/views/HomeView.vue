@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EditLocalStorageConfig from '@/components/EditLocalStorageConfig.vue'
 import { useLocalStore, useMainStore } from '@/stores/simple'
 import type { Item, State } from '@/typing'
 import { computed, ref } from 'vue'
@@ -117,6 +118,9 @@ function deleteItem(ind: number) {
     <li class="archived" v-for="it in currentArchived" :key="it.ind">{{ it.description }}</li>
   </ul>
   <!--pre>{{ JSON.stringify(current, null, 2) }}</pre-->
+  <div v-if="mode === 'edit'">
+    <EditLocalStorageConfig mode="details"/>
+  </div>
 </template>
 
 <style>
