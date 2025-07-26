@@ -30,7 +30,7 @@ export function getOrAskConfig(LOCAL_STORAGE_KEY = APP_LOCAL_STORAGE_KEY, saveTo
   }
 
   if (config == ASK) {
-    const v = prompt(`Enter the doc description e.g.: ${EG_CONFIG}`)
+    const v = prompt(`[${LOCAL_STORAGE_KEY}]\n\nEnter the doc description e.g.: ${EG_CONFIG}`)
     if (!v) {
       throw new Error('No config provided')
     }
@@ -43,21 +43,21 @@ export function getOrAskConfig(LOCAL_STORAGE_KEY = APP_LOCAL_STORAGE_KEY, saveTo
     throw new Error('Invalid config provided')
   }
   if (config[0] == ASK) {
-    const server = prompt('Enter the server name, e.g.: todo.com')
+    const server = prompt('[${LOCAL_STORAGE_KEY}]\n\nEnter the server name, e.g.: todo.com')
     if (!server) {
       throw new Error('No server provided')
     }
     config[0] = server
   }
   if (config[1] == ASK) {
-    const docname = prompt('Enter the document name, e.g.: todo-doc')
+    const docname = prompt('[${LOCAL_STORAGE_KEY}]\n\nEnter the document name, e.g.: todo-doc')
     if (!docname) {
       throw new Error('No document name provided')
     }
     config[1] = docname
   }
   if (config[2] == ASK) {
-    const token = prompt('Enter the token, e.g.: todo-tok-suffix')
+    const token = prompt('[${LOCAL_STORAGE_KEY}]\n\nEnter the token, e.g.: todo-tok-suffix')
     if (!token) {
       throw new Error('No token provided')
     }
