@@ -43,6 +43,7 @@ function promptAddList() {
       alert("Already there... aborting")
       return
     }
+    main.record({ op: 'addList', name })
     main.data.lists[name] = []
   }
 }
@@ -52,7 +53,9 @@ function promptAddItem() {
   if (description !== null && description !== "") {
     const l = main.data?.lists?.[local.currentList]
     if (l !== undefined) {
-      l.push({ id: newId(), description, state: 'unchecked'})
+      const id = newId()
+      main.record({ op: 'add', list: local.currentList, id })
+      l.push({ id, description, state: 'unchecked'})
     }
   }
 }
@@ -61,7 +64,8 @@ function promptDescription(ind: number) {
     const l = main.data?.lists?.[local.currentList]
     if (l !== undefined) {
       const description = prompt("New description", l[ind].description)
-      if (description !== null) {
+      if (description !== null && description !== l[ind].description) {
+        main.record({ op: 'setDescription', list: local.currentList, id: l[ind].id, prev: l[ind].description })
         l[ind].description = description
       }
     }
@@ -70,7 +74,8 @@ function promptDescription(ind: number) {
 
 function setState(ind: number, state: State) {
     const l = main.data?.lists?.[local.currentList]
-    if (l !== undefined) {
+    if (l !== undefined && l[ind].state !== state) {
+      main.record({ op: 'setState', list: local.currentList, id: l[ind].id, prev: l[ind].state })
       l[ind].state = state
     }
 }
@@ -78,6 +83,7 @@ function setState(ind: number, state: State) {
 function deleteItem(ind: number) {
     const l = main.data?.lists?.[local.currentList]
     if (l !== undefined) {
+      main.record({ op: 'remove', list: local.currentList, item: { ...l[ind] }, index: ind })
       l.splice(ind, 1)
     }
 }
@@ -96,6 +102,7 @@ function deleteItem(ind: number) {
     </button>
     <button @click="promptAddItem()">(+) new item</button>
     <button @click="cycleMode()">mode is <code>{{ mode }}</code></button>
+    <button @click="main.undo()" :disabled="!main.canUndo" :title="main.canUndo ? 'undo last change' : 'nothing to undo'">undo <code>{{ main.undoCount }}</code></button>
   </div>
   <ul v-if="mode === 'edit'" class="mode-edit">
     <li @click="promptAddItem()">(+)</li>

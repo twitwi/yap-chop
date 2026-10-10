@@ -1,9 +1,9 @@
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import * as Y from 'yjs'
 import type { WebsocketProvider } from 'y-websocket'
 import { parse, stringify } from 'yaml'
-import type { Data, Item } from '@/typing'
+import type { Data, Item, State } from '@/typing'
 import { StateSpec } from '@/typing'
 import { deepEqual, normalizeLists } from '@/repair'
 import { listBoxFiles, resolveFileText, setupYjs } from '@/main-yjs'
@@ -113,6 +113,58 @@ export function modelNeedsPublish(next: Data, syncedYamlText: string, syncedMode
 // entry: nothing valid to check them against. Adding a future constrained
 // field is one entry here.
 const ITEM_SPECS = { state: StateSpec }
+
+// Inverse ops for the local undo stack. `list` pins the origin list so undo
+// applies correctly even after the user switched lists.
+export type Inverse =
+  | { op: 'setState'; list: string; id: string; prev: State }
+  | { op: 'setDescription'; list: string; id: string; prev: string }
+  | { op: 'add'; list: string; id: string }
+  | { op: 'remove'; list: string; item: Item; index: number }
+  | { op: 'addList'; name: string }
+
+const MAX_HISTORY = 50
+
+// Pure undo helpers (unit-tested in __tests__/undo.spec.ts). The store's
+// record()/undo() below are thin wrappers binding these to its data/history.
+export function pushHistory(history: Inverse[], inv: Inverse, cap = MAX_HISTORY): void {
+  history.push(inv)
+  if (history.length > cap) history.shift()
+}
+
+export function applyInverse(data: Data, inv: Inverse): void {
+  if (inv.op === 'addList') {
+    const l = data.lists[inv.name]
+    if (l && l.length === 0) delete data.lists[inv.name]
+    return
+  }
+  const items = data.lists[inv.list]
+  switch (inv.op) {
+    case 'setState': {
+      const it = items?.find((i) => i.id === inv.id)
+      if (it) it.state = inv.prev
+      break
+    }
+    case 'setDescription': {
+      const it = items?.find((i) => i.id === inv.id)
+      if (it) it.description = inv.prev
+      break
+    }
+    case 'add': {
+      const l = data.lists[inv.list]
+      if (l) {
+        const ix = l.findIndex((i) => i.id === inv.id)
+        if (ix >= 0) l.splice(ix, 1)
+      }
+      break
+    }
+    case 'remove': {
+      const l = data.lists[inv.list] ?? (data.lists[inv.list] = [])
+      l.splice(Math.min(inv.index, l.length), 0, { ...inv.item })
+      break
+    }
+  }
+}
 
 export const useMainStore = defineStore('main', () => {
   // like setup() in a component
@@ -295,5 +347,25 @@ export const useMainStore = defineStore('main', () => {
     wsStatus.value = 'disabled'
   }
 
-  return { data, wsStatus, wsSynced, activeFile, boxFiles, rawYaml }
+  // --- Local per-tap undo (in-memory, local edits only, no toasts) ---
+  // History of inverse ops, recorded by the UI before each local mutation
+  // (see Inverse below). Remote changes never push. Undo applies the
+  // inverse as a normal local edit (flows through watcher -> publish).
+  // addList undo drops the list only if still empty, so it can never wipe
+  // items a peer added meanwhile.
+  const history: Inverse[] = []
+  const undoCount = ref(0)
+  const canUndo = computed(() => undoCount.value > 0)
+  function record(inv: Inverse) {
+    pushHistory(history, inv)
+    undoCount.value = history.length
+  }
+  function undo() {
+    const inv = history.pop()
+    undoCount.value = history.length
+    if (!inv) return
+    applyInverse(data.value, inv)
+  }
+
+  return { data, wsStatus, wsSynced, activeFile, boxFiles, rawYaml, record, undo, undoCount, canUndo }
 })
