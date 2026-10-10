@@ -17,14 +17,14 @@
     "@vueuse/core": "^12.3.0",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.2.0",
-    "pinia-plugin-yjs": "^0.0.4",
     "vite-plugin-pwa": "^1.0.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0",
     "workbox-window": "^7.3.0",
     "y-indexeddb": "^9.0.12",
     "y-websocket": "^3.0.0",
-    "yjs": "^13.6.24"
+    "yjs": "^13.6.24",
+    "yaml": "^2.6.0"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.1",

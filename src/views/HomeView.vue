@@ -2,6 +2,7 @@
 import EditLocalStorageConfig from '@/components/EditLocalStorageConfig.vue'
 import { useLocalStore, useMainStore } from '@/stores/simple'
 import type { Item, State } from '@/typing'
+import { newId } from '@/typing'
 import { computed, ref } from 'vue'
 const local = useLocalStore()
 const main = useMainStore()
@@ -51,7 +52,7 @@ function promptAddItem() {
   if (description !== null && description !== "") {
     const l = main.data?.lists?.[local.currentList]
     if (l !== undefined) {
-      l.push({ description, state: 'unchecked'})
+      l.push({ id: newId(), description, state: 'unchecked'})
     }
   }
 }
