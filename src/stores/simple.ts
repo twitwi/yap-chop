@@ -4,6 +4,8 @@ import * as Y from 'yjs'
 import type { WebsocketProvider } from 'y-websocket'
 import { parse, stringify } from 'yaml'
 import type { Data, Item } from '@/typing'
+import { StateSpec } from '@/typing'
+import { deepEqual, normalizeLists } from '@/repair'
 import { listBoxFiles, resolveFileText, setupYjs } from '@/main-yjs'
 
 export const useLocalStore = defineStore(
@@ -98,6 +100,20 @@ function getBox() {
 
 const SEED: Data = { lists: { shop: [] } }
 
+// Publish iff the model holds something the last-synced state doesn't.
+// Text-only differences (repair echoes, remote adoptions, no-op
+// reassignments) never publish — even though the text differs, the model
+// carries nothing new. Pure: unit-tested in __tests__/repair.spec.ts.
+export function modelNeedsPublish(next: Data, syncedYamlText: string, syncedModel: Data): boolean {
+  if (deepEqual(next, syncedModel)) return false
+  return stringify(next) !== syncedYamlText
+}
+
+// Specs for constrained item fields. Free-text fields (description) have no
+// entry: nothing valid to check them against. Adding a future constrained
+// field is one entry here.
+const ITEM_SPECS = { state: StateSpec }
+
 export const useMainStore = defineStore('main', () => {
   // like setup() in a component
   const { ydoc, boxPath, provider, whenReady } = getBox()
@@ -138,6 +154,7 @@ export const useMainStore = defineStore('main', () => {
         return
       }
       data.value = mergeById(data.value, incoming, synced)
+      normalizeLists(data.value.lists, ITEM_SPECS)
       syncedYaml = raw
       synced = clone(data.value)
       refreshBoxMeta()
@@ -188,6 +205,10 @@ export const useMainStore = defineStore('main', () => {
   }
 
   // Local (pinia -> Yjs): partial delta write of the single YAML file.
+  // Publish condition: the model must differ from the last-synced model.
+  // Text-only differences (repair echoes, remote adoptions, no-op
+  // reassignments) never write — the async watcher runs after onText already
+  // reset applyingRemote, so the flag alone cannot suppress them.
   let scheduled = false
   watch(
     data,
@@ -198,9 +219,8 @@ export const useMainStore = defineStore('main', () => {
       scheduled = true
       queueMicrotask(() => {
         scheduled = false
-        const yaml = stringify(v)
-        if (yaml === syncedYaml) return
-        publish(yaml)
+        if (!modelNeedsPublish(v, syncedYaml, synced)) return
+        publish(stringify(v))
       })
     },
     { deep: true },
@@ -232,12 +252,25 @@ export const useMainStore = defineStore('main', () => {
         } else {
           const incoming = tryParseYaml(cur)
           if (incoming !== null) {
+            normalizeLists(incoming.lists, ITEM_SPECS)
             data.value = mergeById(data.value, incoming, synced)
+            normalizeLists(data.value.lists, ITEM_SPECS)
             syncedYaml = cur
             synced = clone(data.value)
-            const yaml = stringify(data.value)
-            if (yaml !== cur) publish(yaml) // push pre-ready local additions
+            // Push pre-ready local additions only: if the merged model is
+            // fully represented by the incoming text, any text difference is
+            // just repair echo, which must not be written back.
+            if (modelNeedsPublish(data.value, cur, incoming)) {
+              const yaml = stringify(data.value)
+              if (yaml !== cur) publish(yaml)
+            }
+          } else if (dirty) {
+            // Unparseable bytes, but we hold parsed-valid local content: ours
+            // is the only known-good model, publish it.
+            publish(stringify(data.value))
           } else {
+            // Unparseable bytes, nothing local to save: adopt as delta base
+            // and wait — never overwrite others' in-flight content.
             syncedYaml = cur
           }
         }
